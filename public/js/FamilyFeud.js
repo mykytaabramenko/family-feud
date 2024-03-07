@@ -46,7 +46,7 @@ var app = {
                 </div>
 
                 </div>`),
-    
+
     // Utility functions
     shuffle: (array) => {
         var currentIndex = array.length,
@@ -205,6 +205,7 @@ var app = {
         console.log(n);
         var card = $('[data-id="' + n + '"]');
         var flipped = $(card).data("flipped");
+        if(!flipped) $("#correct")[0].play();
         var cardRotate = (flipped) ? 0 : -180;
         TweenLite.to(card, 1, {
             rotationX: cardRotate,
@@ -215,14 +216,16 @@ var app = {
         app.getBoardScore()
     },
     wrongAnswer:()=>{
+        $("#wrong")[0].play();
         app.wrong++
         console.log("wrong: "+ app.wrong )
         var wrong = app.board.find(".wrongBoard")
+        // $("#wrongAnswerSound")[0].play();
         $(wrong).find("img:nth-child("+app.wrong+")").show()
         $(wrong).show()
-        setTimeout(() => { 
-            $(wrong).hide(); 
-        }, 1000); 
+        setTimeout(() => {
+            $(wrong).hide();
+        }, 1000);
 
     },
 
@@ -253,7 +256,7 @@ var app = {
                 break;
         }
     },
-    
+
     // Inital function
     init: () => {
 
