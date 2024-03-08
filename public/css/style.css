@@ -40,7 +40,7 @@ body {
   gap: 10px;
   margin: auto;
   display: grid;
-  grid-template-areas: 
+  grid-template-areas:
     ".        scoreM  .       "
     "scoreT1  main    scoreT2 "
     ".        host    .       ";
@@ -229,7 +229,7 @@ body {
   border: none;
   margin: auto 5px;
   box-sizing: border-box;
-  padding-left: 60px; 
+  padding-left: 60px;
   text-align: left;
   text-shadow: 1px 1px 3px rgba(0, 0, 0, 1), -1px -1px 3px rgba(0, 0, 0, 1), 0 0 5px rgba(0, 0, 0, 1);
 }
@@ -259,4 +259,8 @@ body {
 }
 .showHost #wrong {
 width: 75px;
+}
+
+.questionHolder{
+  cursor: pointer;
 }
