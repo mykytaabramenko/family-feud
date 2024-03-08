@@ -5,7 +5,8 @@
   "private": true,
   "main": "server.js",
   "scripts": {
-    "start": "nodemon server.js"
+    "start": "nodemon server.js",
+    "generateData": "node public/js/migrateDataToJson.js"
   },
   "dependencies": {
     "express": "^4.17.1",
