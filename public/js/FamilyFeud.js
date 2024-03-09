@@ -1,6 +1,8 @@
 console.clear();
 
 var app = {
+  scoreAfterRewardOfOneTeam: 0,
+  awardedTeamNumber: null,
   questionHidden: true,
   version: 1,
   role: "player",
@@ -74,6 +76,8 @@ var app = {
 
   // Action functions
   makeQuestion: (eNum) => {
+    app.scoreAfterRewardOfOneTeam = 0;
+    app.awardedTeamNumber = null;
     var qText = app.questions[eNum];
     var qAnswr = app.allData[qText];
 
@@ -144,11 +148,21 @@ var app = {
     cards.data("flipped", false);
   },
   getBoardScore: () => {
-    var cards = app.board.find(".card");
-    var boardScore = app.board.find("#boardScore");
-    var currentScore = {
+    const boardScore = app.board.find("#boardScore");
+    const currentScore = {
       var: boardScore.html(),
     };
+    if (app.scoreAfterRewardOfOneTeam) {
+      TweenMax.to(currentScore, 1, {
+        var: app.scoreAfterRewardOfOneTeam,
+        onUpdate: function () {
+          boardScore.html(Math.round(currentScore.var));
+        },
+        ease: Power3.easeOut,
+      });
+      return;
+    }
+    var cards = app.board.find(".card");
     var score = 0;
 
     function tallyScore() {
@@ -191,6 +205,7 @@ var app = {
       },
       ease: Power3.easeOut,
     });
+    app.awardedTeamNumber = num;
   },
   changeQuestion: () => {
     const numberOfQuestions = app.questions.length;
@@ -210,7 +225,11 @@ var app = {
     });
   },
   flipCard: (n) => {
-    var card = $('[data-id="' + n + '"]');
+    const card = $('[data-id="' + n + '"]');
+    if (app.awardedTeamNumber) {
+      const value = $(card).find("b").html();
+      app.scoreAfterRewardOfOneTeam += parseInt(value);
+    }
     var flipped = $(card).data("flipped");
     if (!flipped) $("#correct")[0].play();
     var cardRotate = flipped ? 0 : -180;
@@ -248,6 +267,7 @@ var app = {
     }, 1000);
   },
   resetScore: () => {
+    app.scoreAfterRewardOfOneTeam = 0;
     const team1 = app.board.find("#team1");
     const team2 = app.board.find("#team2");
     TweenMax.to(team1, 1, {
