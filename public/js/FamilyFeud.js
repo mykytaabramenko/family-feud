@@ -206,6 +206,7 @@ var app = {
       ease: Power3.easeOut,
     });
     app.awardedTeamNumber = num;
+    app.scoreAfterRewardOfOneTeam = 0;
   },
   changeQuestion: () => {
     const numberOfQuestions = app.questions.length;
