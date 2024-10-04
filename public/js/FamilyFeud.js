@@ -1,9 +1,11 @@
 console.clear();
 
-var app = {
+const app = {
   scoreAfterRewardOfOneTeam: 0,
   awardedTeamNumber: null,
   questionHidden: true,
+  faceOff: false,
+  audience: false,
   version: 1,
   role: "player",
   socket: io.connect(),
@@ -42,33 +44,21 @@ var app = {
                     <div id='hostBTN'     class='button'>Be the host</div>
                     <div id='awardTeam1'  class='button' data-team='1'>Award Team 1</div>
                     <div id='newQuestion' class='button'>New Question</div>
+                    <div id='audience' class='button'>Audience</div>
                     <div id="wrong"       class='button wrongX'>
                         <img alt="not on board" src="/public/img/Wrong.svg"/>
                     </div>
                     <div id='resetScore' class='button'>Reset score</div>
+                    <div id='faceOff' class='button'>Face off</div>
                     <div id='awardTeam2'  class='button' data-team='2' >Award Team 2</div>
                 </div>
 
                 </div>`),
 
   // Utility functions
-  shuffle: (array) => {
-    var currentIndex = array.length,
-      temporaryValue,
-      randomIndex;
-
-    while (0 !== currentIndex) {
-      randomIndex = Math.floor(Math.random() * currentIndex);
-      currentIndex -= 1;
-      temporaryValue = array[currentIndex];
-      array[currentIndex] = array[randomIndex];
-      array[randomIndex] = temporaryValue;
-    }
-    return array;
-  },
   jsonLoaded: (data) => {
     app.allData = data;
-    app.questions = Object.keys(data);
+    app.questions = data.map((item) => item.question);
     app.makeQuestion(app.currentQ);
     app.board.find(".host").hide();
     $("body").append(app.board);
@@ -78,12 +68,11 @@ var app = {
   makeQuestion: (eNum) => {
     app.scoreAfterRewardOfOneTeam = 0;
     app.awardedTeamNumber = null;
-    var qText = app.questions[eNum];
-    var qAnswr = app.allData[qText];
+    const qAnswr = app.allData[eNum].options;
 
-    var boardScore = app.board.find("#boardScore");
-    var question = app.board.find(".question");
-    var holderMain = app.board.find(".colHolder");
+    const boardScore = app.board.find("#boardScore");
+    const question = app.board.find(".question");
+    const holderMain = app.board.find(".colHolder");
 
     boardScore.html(0);
     app.questionHidden = true;
@@ -91,14 +80,14 @@ var app = {
     holderMain.empty();
 
     app.wrong = 0;
-    var wrong = app.board.find(".wrongBoard");
+    const wrong = app.board.find(".wrongBoard");
     $(wrong).find("img").hide();
     $(wrong).hide();
 
     qNum = 10;
 
-    for (var i = 0; i < qNum; i++) {
-      var aLI;
+    for (let i = 0; i < qNum; i++) {
+      let aLI;
       if (qAnswr[i]) {
         aLI = $(`<div class='cardHolder'>
                             <div class='card' data-id='${i}'>
@@ -128,10 +117,10 @@ var app = {
       $(aLI).appendTo(parentDiv);
     }
 
-    var cardHolders = app.board.find(".cardHolder");
-    var cards = app.board.find(".card");
-    var backs = app.board.find(".back");
-    var cardSides = app.board.find(".card>div");
+    const cardHolders = app.board.find(".cardHolder");
+    const cards = app.board.find(".card");
+    const backs = app.board.find(".back");
+    const cardSides = app.board.find(".card>div");
 
     TweenLite.set(cardHolders, {
       perspective: 800,
@@ -152,7 +141,7 @@ var app = {
     const currentScore = {
       var: boardScore.html(),
     };
-    if (app.scoreAfterRewardOfOneTeam) {
+    if (app.awardedTeamNumber) {
       TweenMax.to(currentScore, 1, {
         var: app.scoreAfterRewardOfOneTeam,
         onUpdate: function () {
@@ -162,12 +151,12 @@ var app = {
       });
       return;
     }
-    var cards = app.board.find(".card");
-    var score = 0;
+    const cards = app.board.find(".card");
+    let score = 0;
 
     function tallyScore() {
       if ($(this).data("flipped")) {
-        var value = $(this).find("b").html();
+        const value = $(this).find("b").html();
         score += parseInt(value);
       }
     }
@@ -181,15 +170,15 @@ var app = {
     });
   },
   awardPoints: (num) => {
-    var boardScore = app.board.find("#boardScore");
-    var currentScore = {
+    const boardScore = app.board.find("#boardScore");
+    const currentScore = {
       var: parseInt(boardScore.html()),
     };
-    var team = app.board.find("#team" + num);
-    var teamScore = {
+    const team = app.board.find("#team" + num);
+    const teamScore = {
       var: parseInt(team.html()),
     };
-    var teamScoreUpdated = teamScore.var + currentScore.var;
+    const teamScoreUpdated = teamScore.var + currentScore.var;
     TweenMax.to(teamScore, 1, {
       var: teamScoreUpdated,
       onUpdate: function () {
@@ -227,13 +216,16 @@ var app = {
   },
   flipCard: (n) => {
     const card = $('[data-id="' + n + '"]');
+    let flipped = $(card).data("flipped");
+    if (!flipped) $("#correct")[0].play();
+
     if (app.awardedTeamNumber) {
       const value = $(card).find("b").html();
-      app.scoreAfterRewardOfOneTeam += parseInt(value);
+      if (flipped) {
+        app.scoreAfterRewardOfOneTeam -= parseInt(value);
+      } else app.scoreAfterRewardOfOneTeam += parseInt(value);
     }
-    var flipped = $(card).data("flipped");
-    if (!flipped) $("#correct")[0].play();
-    var cardRotate = flipped ? 0 : -180;
+    const cardRotate = flipped ? 0 : -180;
     TweenLite.to(card, 1, {
       rotationX: cardRotate,
       ease: Back.easeOut,
@@ -244,11 +236,22 @@ var app = {
   },
   wrongAnswer: () => {
     const wrong = app.board.find(".wrongBoard");
+
+    if (app.faceOff || app.audience) {
+      app.wrong = 1;
+      app.showCrosses(wrong);
+      return;
+    }
     if (app.wrong === 3) {
       app.wrong = 1;
     } else {
       app.wrong++;
     }
+
+    app.showCrosses(wrong);
+  },
+
+  showCrosses(wrong) {
     if (app.wrong === 1) {
       const crosses = app.board.find(".cross");
       Object.values(crosses).forEach((_, i) =>
@@ -262,26 +265,50 @@ var app = {
     $(wrong)
       .find("img:nth-child(" + app.wrong + ")")
       .show();
+
     $(wrong).show();
     setTimeout(() => {
       $(wrong).hide();
     }, 1000);
   },
+
   resetScore: () => {
     app.scoreAfterRewardOfOneTeam = 0;
     const team1 = app.board.find("#team1");
     const team2 = app.board.find("#team2");
-    TweenMax.to(team1, 1, {
+
+    const team1Score = {
+      var: team1.html(),
+    };
+    const team2Score = {
+      var: team2.html(),
+    };
+
+    TweenMax.to(team1Score, 1, {
       var: 0,
-      onUpdate: () => team1.html(0),
+      onUpdate: () => team1.html(Math.round(team1Score.var)),
       ease: Power3.easeOut,
     });
 
-    TweenMax.to(team2, 1, {
+    TweenMax.to(team2Score, 1, {
       var: 0,
-      onUpdate: () => team2.html(0),
+      onUpdate: () => team2.html(Math.round(team2Score.var)),
       ease: Power3.easeOut,
     });
+  },
+
+  toggleFaceOff: () => {
+    app.faceOff = !app.faceOff;
+    app.wrong = 0;
+    const faceOffButton = app.board.find("#faceOff");
+    faceOffButton.toggleClass("active");
+  },
+
+  toggleAudience: () => {
+    app.audience = !app.audience;
+    app.wrong = 0;
+    const audience = app.board.find("#audience");
+    audience.toggleClass("active");
   },
   toggleQuestion: () => {
     const question = app.board.find(".question");
@@ -297,7 +324,7 @@ var app = {
 
   // Socket Test
   talkSocket: (e) => {
-    if (app.role == "host") app.socket.emit("talking", e.data);
+    if (app.role === "host") app.socket.emit("talking", e.data);
   },
   listenSocket: (data) => {
     switch (data.trigger) {
@@ -322,6 +349,12 @@ var app = {
       case "resetScore":
         app.resetScore();
         break;
+      case "faceOff":
+        app.toggleFaceOff();
+        break;
+      case "audience":
+        app.toggleAudience();
+        break;
       case "showOrHideQuestion":
         app.toggleQuestion();
         break;
@@ -342,6 +375,12 @@ var app = {
     app.board
       .find("#resetScore")
       .on("click", { trigger: "resetScore" }, app.talkSocket);
+    app.board
+      .find("#faceOff")
+      .on("click", { trigger: "faceOff" }, app.talkSocket);
+    app.board
+      .find("#audience")
+      .on("click", { trigger: "audience" }, app.talkSocket);
     app.board
       .find("#question")
       .on("click", { trigger: "showOrHideQuestion" }, app.talkSocket);

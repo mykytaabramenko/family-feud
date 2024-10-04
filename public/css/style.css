@@ -264,3 +264,7 @@ width: 75px;
 .questionHolder{
   cursor: pointer;
 }
+
+.active{
+  color: red;
+}
